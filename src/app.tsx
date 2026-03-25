@@ -1,20 +1,50 @@
+import { useState, useEffect } from 'react';
 import { Box, Text, useApp, useInput } from 'ink';
 import { MiniCard, isStandardCard, type TCard } from 'ink-playing-cards';
 import {
     useSolitaire,
+    getContextHint, FOUNDATION_SUITS,
     type CursorPosition,
     type SelectedCard,
     type Suit,
-    type TableauColumn,
+    type TableauColumn
 } from './solitaire.js';
 
-const FOUNDATION_SUITS: Suit[] = ['hearts', 'diamonds', 'clubs', 'spades'];
 const SUIT_SYMBOLS: Record<Suit, string> = {
 	hearts: '♥',
 	diamonds: '♦',
 	clubs: '♣',
 	spades: '♠',
 };
+
+const SUIT_COLORS: Record<Suit, string> = {
+	hearts: 'red',
+	diamonds: 'red',
+	clubs: 'white',
+	spades: 'white',
+};
+
+// --- Timer hook ---
+
+function useTimer(running: boolean) {
+	const [seconds, setSeconds] = useState(0);
+
+	useEffect(() => {
+		if (!running) return;
+		const interval = setInterval(() => {
+			setSeconds((s) => s + 1);
+		}, 1000);
+		return () => clearInterval(interval);
+	}, [running]);
+
+	const reset = () => setSeconds(0);
+
+	const formatted = `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
+
+	return {seconds, formatted, reset};
+}
+
+// --- Card rendering ---
 
 function CardSlot({
 	card,
@@ -44,7 +74,6 @@ function CardSlot({
 		);
 	}
 
-	// Empty slot placeholder
 	const borderColor = highlighted ? 'cyan' : 'gray';
 	return (
 		<Box
@@ -60,14 +89,22 @@ function CardSlot({
 	);
 }
 
+function SuitLabel({suit}: {suit: Suit}) {
+	return <Text color={SUIT_COLORS[suit]}>{SUIT_SYMBOLS[suit]}</Text>;
+}
+
+// --- Stock & Waste ---
+
 function StockPile({
 	stock,
 	waste,
 	cursor,
+	stockCycles,
 }: {
 	stock: TCard[];
 	waste: TCard[];
 	cursor: CursorPosition;
+	stockCycles: number;
 }) {
 	const stockHighlight = cursor.zone === 'stock';
 	const wasteHighlight = cursor.zone === 'waste';
@@ -76,14 +113,18 @@ function StockPile({
 	return (
 		<Box gap={1}>
 			<Box flexDirection="column" alignItems="center">
-				<Text dimColor>Stock</Text>
+				<Text dimColor>
+					Stock{stockCycles > 0 ? ` ×${String(stockCycles + 1)}` : ''}
+				</Text>
 				{stock.length > 0 ? (
-					<CardSlot
-						card={stock[stock.length - 1]}
-						faceUp={false}
-						highlighted={stockHighlight}
-						label={`[${stock.length}]`}
-					/>
+					<Box flexDirection="column" alignItems="center">
+						<CardSlot
+							card={stock[stock.length - 1]}
+							faceUp={false}
+							highlighted={stockHighlight}
+						/>
+						<Text dimColor>{String(stock.length)}</Text>
+					</Box>
 				) : (
 					<CardSlot highlighted={stockHighlight} label="↺" />
 				)}
@@ -99,6 +140,8 @@ function StockPile({
 		</Box>
 	);
 }
+
+// --- Foundations ---
 
 function Foundations({
 	foundations,
@@ -120,14 +163,20 @@ function Foundations({
 
 				return (
 					<Box key={suit} flexDirection="column" alignItems="center">
-						<Text dimColor>{SUIT_SYMBOLS[suit]}</Text>
+						<SuitLabel suit={suit} />
 						{topCard ? (
-							<CardSlot
-								card={topCard}
-								faceUp
-								highlighted={isHighlighted}
-								selected={isSelected}
-							/>
+							<Box flexDirection="column" alignItems="center">
+								<CardSlot
+									card={topCard}
+									faceUp
+									highlighted={isHighlighted}
+									selected={isSelected}
+								/>
+								<Text dimColor>
+									{String(pile.length)}
+									<Text color="gray">/13</Text>
+								</Text>
+							</Box>
 						) : (
 							<CardSlot
 								highlighted={isHighlighted}
@@ -140,6 +189,8 @@ function Foundations({
 		</Box>
 	);
 }
+
+// --- Tableau ---
 
 function TableauView({
 	tableau,
@@ -158,15 +209,13 @@ function TableauView({
 				return (
 					<Box key={colIdx} flexDirection="column" alignItems="center">
 						<Text dimColor>{colIdx + 1}</Text>
-						{/* Face-down cards as compact indicators */}
 						{col.faceDown.length > 0 && (
 							<Text dimColor>
 								{'▒'.repeat(Math.min(col.faceDown.length, 5))}
 							</Text>
 						)}
-						{/* Face-up cards */}
 						{col.faceUp.length > 0 ? (
-							col.faceUp.map((card, rowIdx) => {
+							col.faceUp.map((card: TCard, rowIdx: number) => {
 								const isHighlighted = isCursorCol && cursor.row === rowIdx;
 								const isSelected =
 									selected?.zone === 'tableau' &&
@@ -197,60 +246,170 @@ function TableauView({
 	);
 }
 
-function WinScreen({moves}: {moves: number}) {
+// --- Win screen ---
+
+function WinScreen({
+	moves,
+	time,
+	onNewGame,
+	onQuit,
+}: {
+	moves: number;
+	time: string;
+	onNewGame: () => void;
+	onQuit: () => void;
+}) {
+	const [frame, setFrame] = useState(0);
+	const suits = ['♠', '♥', '♦', '♣'];
+
+	useEffect(() => {
+		const interval = setInterval(() => {
+			setFrame((f) => (f + 1) % 20);
+		}, 150);
+		return () => clearInterval(interval);
+	}, []);
+
+	useInput((input) => {
+		if (input === 'n') onNewGame();
+		if (input === 'q') onQuit();
+	});
+
+	const cascade = suits
+		.map((s, i) => (frame + i) % 2 === 0 ? s : ' ')
+		.join(' ');
+
 	return (
 		<Box
 			flexDirection="column"
 			alignItems="center"
 			justifyContent="center"
 			padding={2}
+			borderStyle="double"
+			borderColor="green"
 		>
+			<Text> </Text>
 			<Text color="green" bold>
-				🎉 You Win! 🎉
+				{cascade} YOU WIN! {cascade}
 			</Text>
+			<Text> </Text>
 			<Text>
-				Completed in <Text color="cyan">{moves}</Text> moves
+				Moves: <Text color="cyan" bold>{moves}</Text>
+				{'   '}
+				Time: <Text color="cyan" bold>{time}</Text>
 			</Text>
-			<Text dimColor>Press n for new game, q to quit</Text>
+			<Text> </Text>
+			<Text dimColor>n new game · q quit</Text>
 		</Box>
 	);
 }
 
+// --- Status bar ---
+
+function StatusBar({
+	message,
+	hint,
+	showHints,
+}: {
+	message: string;
+	hint: string;
+	showHints: boolean;
+}) {
+	return (
+		<Box flexDirection="column" marginTop={1}>
+			{message ? (
+				<Text color="yellow" italic>
+					{message}
+				</Text>
+			) : null}
+			{showHints && hint ? (
+				<Text color="gray" italic>
+					{hint}
+				</Text>
+			) : null}
+		</Box>
+	);
+}
+
+// --- Main App ---
+
 export default function App() {
-	const {state, move, select, autoComplete, newGame} = useSolitaire();
+	const {state, move, select, autoComplete, autoFoundation, undo, newGame} =
+		useSolitaire();
 	const {exit} = useApp();
+	const [showHints, setShowHints] = useState(false);
+	const timer = useTimer(!state.gameWon);
 
-	useInput((input, key) => {
-		if (input === 'q') {
-			exit();
-			return;
-		}
+	const handleNewGame = () => {
+		newGame();
+		timer.reset();
+	};
 
-		if (input === 'n') {
-			newGame();
-			return;
-		}
+	useInput(
+		(input, key) => {
+			if (state.gameWon) return;
 
-		if (input === 'a') {
-			autoComplete();
-			return;
-		}
+			if (input === 'q') {
+				exit();
+				return;
+			}
 
-		if (key.leftArrow) move('left');
-		else if (key.rightArrow) move('right');
-		else if (key.upArrow) move('up');
-		else if (key.downArrow) move('down');
-		else if (key.return || input === ' ') select();
-	});
+			if (input === 'n') {
+				handleNewGame();
+				return;
+			}
+
+			if (input === 'a') {
+				autoComplete();
+				return;
+			}
+
+			if (input === 'f') {
+				autoFoundation();
+				return;
+			}
+
+			if (input === 'u') {
+				undo();
+				return;
+			}
+
+			if (input === 'h') {
+				setShowHints((v) => !v);
+				return;
+			}
+
+			if (key.escape) {
+				// Deselect
+				select();
+				return;
+			}
+
+			if (key.leftArrow) move('left');
+			else if (key.rightArrow) move('right');
+			else if (key.upArrow) move('up');
+			else if (key.downArrow) move('down');
+			else if (key.return || input === ' ') select();
+		},
+		{isActive: !state.gameWon},
+	);
 
 	if (state.gameWon) {
-		return <WinScreen moves={state.moves} />;
+		return (
+			<WinScreen
+				moves={state.moves}
+				time={timer.formatted}
+				onNewGame={handleNewGame}
+				onQuit={() => exit()}
+			/>
+		);
 	}
 
 	const foundationCount = FOUNDATION_SUITS.reduce(
 		(sum, s) => sum + state.foundations[s].length,
 		0,
 	);
+
+	const hint = getContextHint(state);
 
 	return (
 		<Box flexDirection="column" padding={1}>
@@ -259,19 +418,27 @@ export default function App() {
 				<Text bold color="green">
 					♠ Solitaire
 				</Text>
-				<Text>
-					Moves: <Text color="cyan">{state.moves}</Text>
-					{'  '}
-					Foundation: <Text color="yellow">{foundationCount}/52</Text>
-				</Text>
+				<Box gap={2}>
+					<Text>
+						<Text color="cyan">{timer.formatted}</Text>
+					</Text>
+					<Text>
+						Moves: <Text color="cyan">{state.moves}</Text>
+					</Text>
+					<Text>
+						<Text color="yellow">{foundationCount}</Text>
+						<Text dimColor>/52</Text>
+					</Text>
+				</Box>
 			</Box>
 
-			{/* Top row: Stock + Waste ... Foundations */}
+			{/* Top row */}
 			<Box justifyContent="space-between" marginBottom={1}>
 				<StockPile
 					stock={state.stock}
 					waste={state.waste}
 					cursor={state.cursor}
+					stockCycles={state.stockCycles}
 				/>
 				<Foundations
 					foundations={state.foundations}
@@ -287,11 +454,18 @@ export default function App() {
 				selected={state.selected}
 			/>
 
+			{/* Status bar */}
+			<StatusBar
+				message={state.statusMessage}
+				hint={hint}
+				showHints={showHints}
+			/>
+
 			{/* Controls */}
 			<Box marginTop={1}>
 				<Text dimColor>
-					←→↑↓ move | Space/Enter select | a auto-complete | n new game | q
-					quit
+					←→↑↓ move · Space select · f foundation · u undo · a auto · h
+					hints · n new · q quit
 				</Text>
 			</Box>
 		</Box>

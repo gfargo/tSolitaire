@@ -17,9 +17,26 @@ yarn start
 |-----|--------|
 | ←→↑↓ | Navigate between piles and cards |
 | Space / Enter | Select card or place it |
-| a | Auto-complete (when all tableau cards are face-up) |
+| Esc | Cancel selection |
+| f | Send card under cursor to its foundation |
+| u | Undo last move |
+| a | Auto-complete (when all cards face-up) |
+| h | Toggle contextual hints |
 | n | New game |
 | q | Quit |
+
+## Features
+
+- Full Klondike solitaire rules
+- Undo support (up to 50 moves)
+- Game timer and move counter
+- Auto-foundation shortcut (f key)
+- Auto-complete when all cards are revealed
+- Contextual hints (toggle with h)
+- Status messages for every action
+- Stock cycle counter
+- Color-coded suits (red/white)
+- Animated win screen
 
 ## Rules
 
@@ -35,19 +52,11 @@ Classic Klondike solitaire:
 ```
 src/
   cli.tsx        — entry point
-  app.tsx        — UI layout and input handling
-  solitaire.tsx  — game state, logic, and reducer
+  app.tsx        — UI layout, input handling, timer
+  solitaire.tsx  — game state, logic, reducer, undo
 test/
   app.tsx        — AVA tests
 ```
-
-## Stack
-
-- Ink 6 — React renderer for the terminal
-- React 19 — component-based UI
-- ink-playing-cards — card components and deck utilities
-- TypeScript — type safety with `react-jsx` transform
-- AVA + ink-testing-library — testing
 
 ## Development
 
