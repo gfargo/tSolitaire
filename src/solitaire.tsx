@@ -96,15 +96,17 @@ function canStackOnTableau(card: TCard, target: TCard): boolean {
 	);
 }
 
-function canStackOnFoundation(card: TCard, foundation: TCard[]): boolean {
+function canStackOnFoundation(
+	card: TCard,
+	foundation: TCard[],
+	targetSuit: Suit,
+): boolean {
 	if (!isStandardCard(card)) return false;
+	if (card.suit !== targetSuit) return false;
 	if (foundation.length === 0) return card.value === 'A';
 	const top = foundation[foundation.length - 1];
 	if (!top || !isStandardCard(top)) return false;
-	return (
-		card.suit === top.suit &&
-		valueIndex(card.value) === valueIndex(top.value) + 1
-	);
+	return valueIndex(card.value) === valueIndex(top.value) + 1;
 }
 
 // --- Init ---
@@ -366,7 +368,7 @@ function placeCard(state: SolitaireState): SolitaireState {
 	if (cursor.zone === 'foundation' && cards.length === 1) {
 		const suit = FOUNDATION_SUITS[cursor.col]!;
 		const pile = state.foundations[suit];
-		if (canStackOnFoundation(firstCard, pile)) {
+		if (canStackOnFoundation(firstCard, pile, suit)) {
 			const newState = removeFromSource(state, source, 1);
 			return {
 				...newState,
@@ -482,7 +484,7 @@ function autoComplete(state: SolitaireState): SolitaireState {
 			const card = current.waste[current.waste.length - 1]!;
 			if (isStandardCard(card)) {
 				const pile = current.foundations[card.suit as Suit];
-				if (canStackOnFoundation(card, pile)) {
+				if (canStackOnFoundation(card, pile, card.suit as Suit)) {
 					current = {
 						...current,
 						waste: current.waste.slice(0, -1),
@@ -504,7 +506,7 @@ function autoComplete(state: SolitaireState): SolitaireState {
 			const card = col.faceUp[col.faceUp.length - 1]!;
 			if (!isStandardCard(card)) continue;
 			const pile = current.foundations[card.suit as Suit];
-			if (canStackOnFoundation(card, pile)) {
+			if (canStackOnFoundation(card, pile, card.suit as Suit)) {
 				const newTableau = [...current.tableau];
 				const newCol = {...col};
 				newCol.faceUp = newCol.faceUp.slice(0, -1);
