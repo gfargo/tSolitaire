@@ -1,0 +1,10 @@
+src
+test
+.vscode
+.editorconfig
+.gitattributes
+.prettierrc.json
+.prettierignore
+tsconfig.json
+release-it.json
+*.log
