@@ -1,56 +1,66 @@
-# ink-starter
+# tSolitaire ♠
 
-Boilerplate for building CLI applications with [Ink](https://github.com/vadimdemedes/ink) 6.x, React 19, and TypeScript.
+Terminal Klondike Solitaire built with [Ink](https://github.com/vadimdemedes/ink) 6, React 19, and [ink-playing-cards](https://www.npmjs.com/package/ink-playing-cards).
 
-> Click **"Use this template"** on GitHub to create a new repo from this starter.
-
-## Stack
-
-- **Ink 6** — React renderer for the terminal
-- **React 19** — component-based UI
-- **TypeScript** — type safety with `react-jsx` transform
-- **AVA** — concurrent test runner with `tsx` loader
-- **ink-testing-library** — test utilities for Ink components
-- **XO + Prettier** — linting and formatting
-- **release-it** — versioning and publishing
-- **GitHub Actions** — CI on push and PR
-
-## Getting Started
+## Play
 
 ```bash
-# Install dependencies
 yarn install
-
-# Run in development (watches for changes)
-yarn dev
-
-# Run the CLI
+yarn build
 yarn start
-
-# Run tests
-yarn test
-
-# Type-check (includes tests)
-yarn typecheck
-
-# Lint and format
-yarn lint
-yarn lint:fix
+# or: npx tsx src/cli.tsx
 ```
+
+## Controls
+
+| Key | Action |
+|-----|--------|
+| ←→↑↓ | Navigate between piles and cards |
+| Space / Enter | Select card or place it |
+| a | Auto-complete (when all tableau cards are face-up) |
+| n | New game |
+| q | Quit |
+
+## Rules
+
+Classic Klondike solitaire:
+
+- Build four foundation piles (♥♦♣♠) from Ace to King
+- Stack tableau cards in descending order, alternating colors
+- Only Kings can be placed on empty tableau columns
+- Draw from stock one card at a time
 
 ## Project Structure
 
 ```
 src/
-  app.tsx    — main App component
-  cli.tsx    — CLI entry point (renders App)
+  cli.tsx        — entry point
+  app.tsx        — UI layout and input handling
+  solitaire.tsx  — game state, logic, and reducer
 test/
-  app.tsx    — AVA tests using ink-testing-library
+  app.tsx        — AVA tests
+```
+
+## Stack
+
+- Ink 6 — React renderer for the terminal
+- React 19 — component-based UI
+- ink-playing-cards — card components and deck utilities
+- TypeScript — type safety with `react-jsx` transform
+- AVA + ink-testing-library — testing
+
+## Development
+
+```bash
+yarn dev        # watch mode
+yarn typecheck  # type-check
+yarn lint       # lint + format check
+yarn test       # run tests
 ```
 
 ## Requirements
 
-- Node.js >= 22 (required by Ink 6)
+- Node.js >= 22
 
 ## License
 
